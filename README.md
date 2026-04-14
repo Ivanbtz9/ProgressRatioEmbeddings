@@ -28,7 +28,7 @@ Official implementation of **Progress Ratio Embeddings**, a continuous positiona
 
 ## Overview
 
-Language models struggle to respect user-specified output lengths, especially for lengths never seen during training. Existing approaches such as Reverse Positional Embeddings (RPE) encode discrete countdown signals that degrade sharply out of distribution.
+Small Language Models struggle to respect user-specified output lengths, especially for lengths never seen during training. Existing approaches such as Reverse Positional Embeddings (RPE) encode discrete countdown signals that degrade sharply out of distribution.
 
 **PRE** replaces this countdown with a continuous *progress ratio* $r_t = t / l \in [0, 1]$, where $t$ is the current decoding step and $l$ is the target length. This ratio is encoded as a sinusoidal embedding whose frequency grows with $r_t$, creating an *impatience signal* that tells the model how far along generation should be:
 
@@ -42,7 +42,7 @@ $$
 \omega_r = r \cdot \frac{d_{\text{model}}}{2}
 $$
 
-The maximum frequency is bounded by the Nyquist criterion, ensuring the signal is perfectly representable without aliasing for any target length — including lengths **never seen during training**.
+The maximum frequency is bounded by the Nyquist criterion, ensuring the signal is perfectly representable without aliasing for any target length.
 
 ---
 
@@ -84,7 +84,7 @@ src/
 ├── BART/                        # Encoder-decoder models (BART-based)
 │   ├── PRE_BART/                # Progress Ratio Embeddings (proposed)
 │   ├── RPE_BART/                # Reverse Positional Embeddings (baseline)
-│   └── LRPE_BART/               # Learned RPE variant (baseline)
+│   └── LRPE_BART/               # Length Ratio Positional Embeddings (baseline)
 ├── T5/
 │   └── PRE_T5/                  # PRE applied to T5
 ├── LLAMA/
@@ -107,10 +107,10 @@ src/
 
 ## Installation
 
-**Python 3.9+ recommended.**
+**Python 3.10+ recommended.**
 
 ```bash
-git clone https://github.com/<your-org>/ProgressRatioEmbeddings.git
+git clone git@github.com:Ivanbtz9/ProgressRatioEmbeddings.git
 cd ProgressRatioEmbeddings
 pip install -r requirements.txt
 ```
@@ -120,7 +120,7 @@ For LLaMA experiments, use the dedicated environment:
 ```bash
 cd src/LLAMA
 conda env create -f env.yml
-conda activate pre_llama
+conda activate pre_llama_env
 ```
 
 Core dependencies: `transformers`, `torch`, `datasets`, `evaluate`, `rouge_score`, `bert_score`.
@@ -131,7 +131,7 @@ Core dependencies: `transformers`, `torch`, `datasets`, `evaluate`, `rouge_score
 
 ### Inference with PRE-BART (HuggingFace Hub)
 
-A fine-tuned PRE-BART-Large checkpoint on CNN/DailyMail is available on the Hub:
+A fine-tuned PRE-BART-Large checkpoint on CNN/DailyMail is available on the Hugging Face Hub:
 
 ```python
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
@@ -149,7 +149,7 @@ tokenizer = AutoTokenizer.from_pretrained(
 article = "Your input article here..."
 inputs = tokenizer([article], return_tensors="pt", truncation=True, max_length=1024)
 
-# Specify your desired output length (in tokens)
+# Specify your desired output length (in tokens), e.g. 80
 target_len = torch.tensor([80])
 
 summary_ids = model.generate(
@@ -164,48 +164,13 @@ print(summary)
 
 The `target_len` argument is the **only** change relative to standard BART inference.
 
-### Training from Scratch
-
-Fine-tune PRE-BART on CNN/DailyMail:
-
-```python
-from src.BART.PRE_BART.modeling_prebart import PREBartForConditionalGeneration
-from src.BART.PRE_BART.configuration_prebart import PREBartConfig
-from src.DATASETS.CNN.modeling_dataset import CNNDataset
-from src.UTILS.modeling_trainer_encoder_decoder import train
-
-config = PREBartConfig.from_pretrained("facebook/bart-large-cnn")
-model = PREBartForConditionalGeneration.from_pretrained(
-    "facebook/bart-large-cnn",
-    config=config,
-)
-
-dataset = CNNDataset(split="train")
-train(model, dataset, output_dir="./checkpoints/pre-bart-cnn")
-```
-
-See `src/UTILS/modeling_trainer_encoder_decoder.py` for the full list of training arguments.
-
-### Evaluation
-
-```bash
-python src/UTILS/generate_and_evaluation_len_enc_dec.py \
-    --model_path ./checkpoints/pre-bart-cnn \
-    --dataset cnn \
-    --split test
-```
-
-This script reports ROUGE-1/2/L, BERTScore, MAE, and standard deviation over target-length buckets.
-
----
-
 ## Supported Models & Baselines
 
 | Model class | Architecture | Description |
 |---|---|---|
 | `PRE_BART` | Encoder-decoder | **Proposed method.** PRE on BART-Large. |
 | `RPE_BART` | Encoder-decoder | Baseline: Reverse Positional Embeddings. |
-| `LRPE_BART` | Encoder-decoder | Baseline: Learned RPE variant. |
+| `LRPE_BART` | Encoder-decoder | Baseline: Length Ratio Positional Embeddings. |
 | `PRE_T5` | Encoder-decoder | PRE applied to T5. |
 | `PRE_LLAMA` | Decoder-only | PRE applied to LLaMA. Prompt tokens receive $\xi(0)$; target tokens receive increasing ratios. |
 
