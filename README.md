@@ -32,7 +32,15 @@ Language models struggle to respect user-specified output lengths, especially fo
 
 **PRE** replaces this countdown with a continuous *progress ratio* $r_t = t / l \in [0, 1]$, where $t$ is the current decoding step and $l$ is the target length. This ratio is encoded as a sinusoidal embedding whose frequency grows with $r_t$, creating an *impatience signal* that tells the model how far along generation should be:
 
-$$\xi(r)_j = \begin{cases} \sin(\omega_r \cdot x_j) & j \text{ even} \\ \cos(\omega_r \cdot x_j) & j \text{ odd} \end{cases}, \quad \omega_r = r \cdot \frac{d_{\text{model}}}{2}$$
+$$
+\xi(r)_j =
+\begin{cases}
+\sin(\omega_r \cdot x_j) & \text{if } j \text{ is even} \\
+\cos(\omega_r \cdot x_j) & \text{if } j \text{ is odd}
+\end{cases},
+\quad
+\omega_r = r \cdot \frac{d_{\text{model}}}{2}
+$$
 
 The maximum frequency is bounded by the Nyquist criterion, ensuring the signal is perfectly representable without aliasing for any target length — including lengths **never seen during training**.
 
