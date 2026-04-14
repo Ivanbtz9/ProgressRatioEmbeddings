@@ -28,9 +28,9 @@ Official implementation of **Progress Ratio Embeddings**, a continuous positiona
 
 ## Overview
 
-Small Language Models struggle to respect user-specified output lengths, especially for lengths never seen during training. Existing approaches such as Reverse Positional Embeddings (RPE) encode discrete countdown signals that degrade sharply out of distribution.
+None Instruct Language Models struggle to respect user-specified output lengths, especially for lengths never seen during training. Existing approaches such as Reverse Positional Embeddings (RPE) encode discrete countdown signals to control the generation over an exoected target length. However that control degrades sharply on out of distribution target length.
 
-**PRE** replaces this countdown with a continuous *progress ratio* $r_t = t / l \in [0, 1]$, where $t$ is the current decoding step and $l$ is the target length. This ratio is encoded as a sinusoidal embedding whose frequency grows with $r_t$, creating an *impatience signal* that tells the model how far along generation should be:
+**PRE** replaces this discret countdown with a continuous *progress ratio* $r_t = t / l \in [0, 1]$, where $t$ is the current decoding step and $l$ is the target length. This ratio is encoded as a sinusoidal embedding whose frequency grows with $r_t$, creating an *impatience signal* that tells the model how far along generation should be:
 
 $$
 \xi(r)_j =
